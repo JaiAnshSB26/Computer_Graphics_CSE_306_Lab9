@@ -6,6 +6,7 @@
 #include <map>
 #include <string>
 #include <fstream>
+#include <algorithm> //Need it for the sorting.
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
@@ -286,8 +287,59 @@ public:
 			adj[i].erase(std::unique(adj[i].begin(), adj[i].end()), adj[i].end());
 		}
 		
-		
-		
+		// I also add the optional part and adapt my iterations to use it directly. I do harmonic mapping with cotangent weights, not doing the reolacing adjacent neighbours dirctly but indirectly eyt.
+		bool useCot = true; // I would set this to true to use optional Harmonic Mapping, and to false for the standard Tutte Embedding.
+
+		auto cotWeight = [](const Vector& base, const Vector& p1, const Vector& p2) {
+			Vector e1 = p1 - base;
+			Vector e2 = p2 - base;
+			return dot(e1, e2) / std::max(1e-8, cross(e1, e2).norm());
+		};
+
+		std::map<std::pair<int, int>, double> cotW;
+		if (useCot) {
+			for (auto& f : indices) {
+				int v[3] = {f.vtx[0], f.vtx[1], f.vtx[2]};
+				for (int i = 0; i < 3; ++i) {
+					int baseV = v[i];
+					int a = v[(i + 1) % 3]; //StackOverflow helped me debug this method.
+					int b = v[(i + 2) % 3];
+					double w = cotWeight(vertices[baseV], vertices[a], vertices[b]);
+					
+					int eA = a, eB = b;
+					if (eA > eB) std::swap(eA, eB);
+					cotW[{eA, eB}] += 0.5 * w;
+				}
+			}
+		}
+
+		// Now the final part, implementing the Iterations using the Jacobi Method.
+		int numIter = 10000;
+		for (int iter = 0; iter < numIter; ++iter){
+			std::vector<Vector> nextUvs = uvs;
+			//I thought it was the best to add in parallelization via OpenMP for speed so I just added it.
+			#pragma omp parallel for schedule(dynamic)
+			for (int i = 0; i < (int)vertices.size(); i++) { //looping over as needed here.
+				if (!onBnd[i]) {
+					Vector sumUvs(0.0, 0.0, 0.0); // initialisation.
+					double sumW = 0.0;
+					for (int adjV : adj[i]) {
+						double w = 1.0; // Tutte uniform weights
+						if (useCot) {
+							int eA = i, eB = adjV;
+							if (eA > eB) std::swap(eA, eB);
+							w = std::max(1e-6, cotW[{eA, eB}]);
+						}
+						sumUvs = sumUvs + w * uvs[adjV];
+						sumW += w;
+					}
+					if (sumW > 0) {
+						nextUvs[i] = sumUvs / sumW;
+					}
+				}
+			}
+			uvs = nextUvs;
+		}
 	}
 	
 
@@ -395,7 +447,7 @@ int main() {
 	TriangleMesh goethe;
 	goethe.readOBJ("goethe.obj");
     goethe.Tutte();
-	goethe.save_image("tutte.png");
+	goethe.save_image("tutte_10000_800_800_with_optional.png");
 
 	return 0;
 }
