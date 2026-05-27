@@ -269,6 +269,23 @@ public:
 				uvs[i] = Vector(0.5, 0.5, 0.5); //I initialize the interior vertices to the center directly.
 			}
 		}
+
+		// The adjacency for interior vertices part now.
+		std::vector<std::vector<int>> adj(vertices.size()); //Note for self: Nest time try using using namespace std;or something else which is similar if this is notcompatible. (imp.)
+		for (auto& f : indices){ //auto type pointer, not the earlier type specific pointer you were trying to use.
+			adj[f.vtx[0]].push_back(f.vtx[1]);
+			adj[f.vtx[0]].push_back(f.vtx[2]);
+			adj[f.vtx[1]].push_back(f.vtx[0]);
+			adj[f.vtx[1]].push_back(f.vtx[2]);
+			adj[f.vtx[2]].push_back(f.vtx[0]);
+			adj[f.vtx[2]].push_back(f.vtx[1]);
+		}
+
+		for (size_t i = 0; i < adj.size(); i++){
+			std::sort(adj[i].begin(), adj[i].end());
+			adj[i].erase(std::unique(adj[i].begin(), adj[i].end()), adj[i].end());
+		}
+		
 		
 		
 	}
