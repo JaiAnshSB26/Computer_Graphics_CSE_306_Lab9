@@ -213,6 +213,38 @@ public:
 		// put them on a unit circle within [0,1]^2
 		// then iterate : for each interior vertices, set their parameterization to be the average of their neighbor's parameterization.
 		
+		//Firstly, we implement locating the boundary vertices part.
+		// Please note that since this was a single lab I wasn't super careful on the best variable naming practices (I am sorry for that) sicne I thought that I would not need to pick up working where I left off the last time.
+		std::map<std::pair<int, int>, int> edgeHits; //initialising our EdgeHits.
+		for (int i = 0; i < (int)indices.size(); i++) {
+			edgeHits[{indices[i].vtx[0], indices[i].vtx[1]}] = i;
+			edgeHits[{indices[i].vtx[1], indices[i].vtx[2]}] = i;
+			edgeHits[{indices[i].vtx[2], indices[i].vtx[0]}] = i;
+		}
+
+		std::map<int, int> nextOnBnd; //next on boundary.
+		for (auto& it : edgeHits) {
+			if (edgeHits.find({it.first.second, it.first.first}) == edgeHits.end()) {
+				nextOnBnd[it.first.first] = it.first.second;
+			}
+		}
+
+		// The boundry loop thingy.
+		std::vector<int> bndLoop;
+		if (!nextOnBnd.empty()){
+			int startV = nextOnBnd.begin()->first;
+			int curV = startV;
+			//We need the do-while loop here, and not the other type of loops. (Note for self)
+			do {
+				bndLoop.push_back(curV);
+				curV = nextOnBnd[curV];
+			} while (curV != startV);
+		}
+
+		std::vector<bool> onBnd(vertices.size(), false); //the On Boundary thing.
+		for (int v : bndLoop) {
+			onBnd[v] = true;
+		}
 		
 	}
 	
