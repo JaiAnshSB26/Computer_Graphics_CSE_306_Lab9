@@ -245,6 +245,31 @@ public:
 		for (int v : bndLoop) {
 			onBnd[v] = true;
 		}
+
+		//Now, I implememt the second part according to me which is computing the boundary legnth and putting them on a unit circle within the [0,1] x [0,1] region.
+		double perim = 0;
+		std::vector<double> edgeLen(bndLoop.size());  //struct and initialization.
+		for (size_t i = 0; i < bndLoop.size(); i++){
+			int v0 = bndLoop[i];
+			int v1 = bndLoop[(i+1) % bndLoop.size()];
+			double len = (vertices[v0] - vertices[v1]).norm();
+			edgeLen[i] = len;
+			perim += len;
+		}
+
+		double soFar = 0;
+		for (size_t i = 0; i < bndLoop.size(); i++){
+			double theta = 2.0 * M_PI * soFar / perim;
+			uvs[bndLoop[i]] = Vector(0.5 + 0.5 * cos(theta), 0.5 + 0.5 * sin(theta), 0.0);
+			soFar += edgeLen[i]; //update the soFare with all the boundaryloop points.
+		}
+
+		for (size_t i = 0; i < vertices.size(); i++){
+			if (!onBnd[i]){
+				uvs[i] = Vector(0.5, 0.5, 0.5); //I initialize the interior vertices to the center directly.
+			}
+		}
+		
 		
 	}
 	
